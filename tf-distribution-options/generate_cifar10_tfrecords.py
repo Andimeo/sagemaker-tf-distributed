@@ -77,6 +77,7 @@ def read_pickle_from_file(filename):
 def convert_to_tfrecord(input_files, output_file):
   """Converts a file to TFRecords."""
   print('Generating %s' % output_file)
+  index = 0
   with tf.python_io.TFRecordWriter(output_file) as record_writer:
     for input_file in input_files:
       data_dict = read_pickle_from_file(input_file)
@@ -90,9 +91,29 @@ def convert_to_tfrecord(input_files, output_file):
                 'image': _bytes_feature(data[i].tobytes()),
                 'label': _int64_feature(labels[i])
             }))
+        index += 1
         record_writer.write(example.SerializeToString())
 
-
+def convert_to_tfrecord_train(input_files, output_file_prefix, num):
+    writers = [tf.python_io.TFRecordWriter(os.path.join(output_file_prefix, 'train_' + str(i) + '.tfrecords')) for i in range(num)]
+    index = 0                                       
+    for input_file in input_files:
+        data_dict = read_pickle_from_file(input_file)
+        data = data_dict[b'data']
+        labels = data_dict[b'labels']
+        num_entries_in_batch = len(labels)
+        for i in range(num_entries_in_batch):
+            example = tf.train.Example(features=tf.train.Features(
+                feature = {
+                    'image': _bytes_feature(data[i].tobytes()),
+                    'label': _int64_feature(labels[i])
+                }
+            ))
+            index += 1
+            writers[index % num].write(example.SerializeToString())
+    for writer in writers:
+        writer.close()
+        
 def main(data_dir):
   print('Download from {} and extract.'.format(CIFAR_DOWNLOAD_URL))
   download_and_extract(data_dir)
@@ -108,7 +129,11 @@ def main(data_dir):
     except OSError:
       pass
     # Convert to tf.train.Example and write the to TFRecords.
-    convert_to_tfrecord(input_files, output_file)
+    if mode == 'train':
+        output_file_prefix = data_dir+'/'+mode
+        convert_to_tfrecord_train(input_files, output_file_prefix, 100)
+    else:
+        convert_to_tfrecord(input_files, output_file)
   print('Done!')
   import shutil
   shutil.rmtree(data_dir+'/cifar-10-batches-py')

@@ -12,7 +12,10 @@ from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 
 from model_def import get_model, HEIGHT, WIDTH, DEPTH, NUM_CLASSES
 from utilities import process_input
-
+from numpy.random import seed
+seed(13)
+from tensorflow import set_random_seed
+set_random_seed(13)
 
 logging.getLogger().setLevel(logging.INFO)
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -80,18 +83,24 @@ def main(args):
 
     logging.info("Starting training")
 
-    history = model.fit(x=train_dataset[0], 
-              y=train_dataset[1],
-              steps_per_epoch=(num_examples_per_epoch('train') // args.batch_size) // size,
-              epochs=args.epochs, 
-              validation_data=validation_dataset,
-              validation_steps=(num_examples_per_epoch('validation') // args.batch_size) // size, callbacks=callbacks)
+#    history = model.fit(train_dataset, epochs=args.epochs, validation_data=validation_dataset)
+    
+    history = model.fit(#x=train_dataset[0], 
+             #y=train_dataset[1],
+             train_dataset,
+             steps_per_epoch=num_examples_per_epoch(size, 'train') // args.batch_size,# // size,
+             epochs=args.epochs, 
+             validation_data=validation_dataset,
+             validation_steps=num_examples_per_epoch(size, 'validation') // args.batch_size,# // size, 
+             callbacks=callbacks)
 
-    score = model.evaluate(eval_dataset[0], 
-                           eval_dataset[1], 
-                           steps=num_examples_per_epoch('eval') // args.batch_size,
+    score = model.evaluate(#eval_dataset[0], 
+                           #eval_dataset[1], 
+                           eval_dataset,
+                           steps=num_examples_per_epoch(size, 'eval') // args.batch_size,
                            verbose=0)
 
+    logging.info('host[0]: {}, current_host: {}'.format(args.hosts[0], args.current_host))
     logging.info('Test loss:{}'.format(score[0]))
     logging.info('Test accuracy:{}'.format(score[1]))
 
@@ -101,10 +110,10 @@ def main(args):
         save_model(model, args.model_dir)
 
 
-def num_examples_per_epoch(subset='train'):
+def num_examples_per_epoch(size, subset='train'):
     
     if subset == 'train':
-        return 40000
+        return 40000 // size
     elif subset == 'validation':
         return 10000
     elif subset == 'eval':
@@ -137,5 +146,16 @@ if __name__ == '__main__':
     parser.add_argument('--momentum',type=float,default='0.9')
     
     args = parser.parse_args()
-
+    logging.info('hosts: %s' % str(args.hosts))
+    logging.info('current host: %s' % args.current_host)
+    logging.info('train: %s' % args.train)
+    from pathlib import Path
+    p = Path(args.train)
+    logging.info('train data: %s' % '\n'.join([str(q) for q in p.glob('*')]))
+    p = Path(args.validation)
+    logging.info('validation data: %s' % '\n'.join([str(q) for q in p.glob('*')]))
+    logging.info('validation: %s' % args.validation)
+    import os
+    if os.path.exists('/opt/ml/input/data/train/train.tfrecords'):
+        os.remove('/opt/ml/input/data/train/train.tfrecords')
     main(args)

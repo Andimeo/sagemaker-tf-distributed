@@ -11,7 +11,10 @@ NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 10000 * NUM_DATA_BATCHES
 
 def _get_filenames(channel_name, channel):
     if channel_name in ['train', 'validation', 'eval']:
-        return [os.path.join(channel, channel_name + '.tfrecords')]
+        from pathlib import Path
+        p = Path(channel)
+        paths = [str(q) for q in p.glob('*')]
+        return paths
     else:
         raise ValueError('Invalid data subset "%s"' % channel_name)
         
@@ -62,7 +65,7 @@ def process_input(epochs, batch_size, channel, channel_name, data_config):
     else:
         dataset = tf.data.TFRecordDataset(filenames)
 
-    dataset = dataset.repeat(epochs)
+    dataset = dataset.repeat()
     dataset = dataset.prefetch(10)
 
     # Parse records.
@@ -78,9 +81,10 @@ def process_input(epochs, batch_size, channel, channel_name, data_config):
 
     # Batch it up.
     dataset = dataset.batch(batch_size, drop_remainder=True)
-    iterator = dataset.make_one_shot_iterator()
-    image_batch, label_batch = iterator.get_next()
+    return dataset
+#    iterator = dataset.make_one_shot_iterator()
+#    image_batch, label_batch = iterator.get_next()
 
-    return image_batch, label_batch
+#    return image_batch, label_batch
 
 
