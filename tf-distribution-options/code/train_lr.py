@@ -21,7 +21,7 @@ from tensorflow.keras.optimizers import Adam, SGD, RMSprop
 
 def get_model(learning_rate, weight_decay, optimizer, momentum, size, mpi=False, hvd=False):
     model = Sequential()
-    model.add(Dense(1))
+    model.add(Dense(1, use_bias=False))
 
     if optimizer.lower() == 'sgd':
         opt = SGD(lr=learning_rate, decay=weight_decay, momentum=momentum)
