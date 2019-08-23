@@ -110,7 +110,7 @@ def main(args):
 
     history = model.fit(x=train_dataset[0],
              y=train_dataset[1],
-             steps_per_epoch=10000,# // size,
+             steps_per_epoch=1000,# // size,
              epochs=args.epochs,
              validation_data=validation_dataset,
              validation_steps=1,# // size,
