@@ -114,6 +114,7 @@ def main(args):
              epochs=args.epochs,
              validation_data=validation_dataset,
              validation_steps=1,# // size,
+             batch_size=1,
              callbacks=callbacks,
              verbose=0)
 
@@ -130,7 +131,8 @@ def main(args):
     if args.current_host == args.hosts[0]:
         save_history(args.model_dir + "/ps_history.p", history)
         save_model(model, args.model_dir)
-
+    save_history(args.model_dir + "/ps_history.p" + args.current_host, history)
+    logging.info('weights: {}'.format(str(model.get_weights())))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
